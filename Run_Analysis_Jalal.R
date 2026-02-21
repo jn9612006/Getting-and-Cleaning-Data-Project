@@ -1,0 +1,78 @@
+## Install the dplyr Package
+install.packages("dplyr")
+
+
+## Load required library
+library(dplyr)
+
+## Download the dataset
+if(!file.exists("./R Folder")) {
+  dir.create("./R Folder")
+}
+## Downlod ZIP file from the URL https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip
+
+fileurl <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+download.file(fileurl, destfile = "./R Folder/projectdataset.zip")
+
+## Unzip the dataset
+unzip(zipfile = "./R Folder/projectdataset.zip", exdir = "./R Folder")
+
+## Merge the training and test datasets
+## Reading files
+
+## Reading training dataset
+x_train <- read.table("./R Folder/UCI HAR Dataset/train/X_train.txt")
+y_train <- read.table("./R Folder/UCI HAR Dataset/train/y_train.txt")
+subject_train <- read.table("./R Folder/UCI HAR Dataset/train/subject_train.txt")
+
+## Reading test dataset
+x_test <- read.table("./getcleandata/UCI HAR Dataset/test/X_test.txt")
+y_test <- read.table("./getcleandata/UCI HAR Dataset/test/y_test.txt")
+subject_test <- read.table("./getcleandata/UCI HAR Dataset/test/subject_test.txt")
+
+## Reading feature vector
+features <- read.table("./R Folder/UCI HAR Dataset/features.txt")
+
+# Reading activity labels
+activityLabels <- read.table("./R Folder/UCI HAR Dataset/activity_labels.txt")
+colnames(activityLabels) <- c("activityID", "activityType")
+
+## Assigning variable names
+colnames(x_train) <- features[, 2]
+colnames(y_train) <- "activityID"
+colnames(subject_train) <- "subjectID"
+
+colnames(x_test) <- features[, 2]
+colnames(y_test) <- "activityID"
+colnames(subject_test) <- "subjectID"
+
+## Merging all dataset into one set
+alltrain <- cbind(y_train, subject_train, x_train)
+alltest <- cbind(y_test, subject_test, x_test)
+finaldataset <- rbind(alltrain, alltest)
+
+## Extracting only the measurements on the mean and sd for each measurement
+mean_and_std <- grepl("activityID|subjectID|mean\\(\\)|std\\(\\)", colnames(finaldataset))
+setforMeanandStd <- finaldataset[, mean_and_std]
+
+## Use descriptive activity names
+setWithActivityNames <- merge(setforMeanandStd, activityLabels, by = "activityID", all.x = TRUE)
+
+## Label the data set with descriptive variable names
+colnames(setWithActivityNames) <- gsub("^t", "time", colnames(setWithActivityNames))
+colnames(setWithActivityNames) <- gsub("^f", "frequency", colnames(setWithActivityNames))
+colnames(setWithActivityNames) <- gsub("Acc", "Accelerometer", colnames(setWithActivityNames))
+colnames(setWithActivityNames) <- gsub("Gyro", "Gyroscope", colnames(setWithActivityNames))
+colnames(setWithActivityNames) <- gsub("Mag", "Magnitude", colnames(setWithActivityNames))
+colnames(setWithActivityNames) <- gsub("BodyBody", "Body", colnames(setWithActivityNames))
+
+## Creating a second, independent tidy data set with the avg of each variable for each activity and subject
+tidySet <- setWithActivityNames %>%
+  group_by(subjectID, activityID, activityType) %>%
+  summarise_all(mean)
+
+## Writing second tidy data set into a txt file
+write.table(tidySet, "tidySet.txt", row.names = FALSE)
+
+## Attached tidySet.txt file
+
